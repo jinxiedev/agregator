@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -40,7 +40,7 @@ func handleAIRequest(w http.ResponseWriter, r *http.Request) {
 	
 	// Parse request body
 	var req AIRequest
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		sendErrorResponse(w, "Failed to read request body", err)
 		return
