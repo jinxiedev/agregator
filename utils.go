@@ -1,7 +1,5 @@
 package main
 
-import "encoding/json"
-
 func prepareMessages(req AIRequest) []map[string]interface{} {
 	var messages []map[string]interface{}
 	
