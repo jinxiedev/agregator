@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -75,7 +76,7 @@ func callGroqAPI(payload map[string]interface{}) (string, error) {
 	defer resp.Body.Close()
 	
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("API error: %s - %s", resp.Status, string(body))
 	}
 	
