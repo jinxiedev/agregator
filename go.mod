@@ -1,3 +1,3 @@
-module go-ai-aggregator
+module jinxie-ai-aggregator
 
-go 1.25.1
+go 1.21
