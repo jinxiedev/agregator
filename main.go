@@ -53,11 +53,21 @@ func main() {
 		port = "8080"
 	}
 	
-	log.Printf("Server running on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	// Binding ke 0.0.0.0 agar bisa diakses dari luar
+	addr := "0.0.0.0:" + port
+	
+	log.Printf("Server starting on %s", addr)
+	log.Printf("Available models: deepseek, llama4, groq-llama, moon-ai, qwen-coder, sonoma-ai")
+	
+	// Test koneksi database atau dependencies lain di sini jika ada
+	
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		log.Fatalf("Server failed to start: %v", err)
+	}
 }
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
+	log.Printf("GET / from %s", r.RemoteAddr)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":    "online",
@@ -69,11 +79,18 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	log.Printf("GET /health from %s", r.RemoteAddr)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "service": "jinxie-ai-aggregator"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"service": "jinxie-ai-aggregator",
+		"time":    time.Now().Format(time.RFC3339),
+	})
 }
 
 func handleAIRequest(w http.ResponseWriter, r *http.Request) {
+	log.Printf("POST /api/ai from %s", r.RemoteAddr)
+	
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -113,6 +130,11 @@ func handleAIRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	log.Printf("Processing request for model: %s, message length: %d", req.Model, len(req.Message))
+	if req.ImageURL != "" {
+		log.Printf("Image URL provided: %s", req.ImageURL)
+	}
+	
 	// Proses berdasarkan model yang diminta
 	var response string
 	var processErr error
@@ -136,9 +158,12 @@ func handleAIRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	if processErr != nil {
+		log.Printf("AI processing error: %v", processErr)
 		sendErrorResponse(w, "AI processing error", processErr)
 		return
 	}
+	
+	log.Printf("Response generated successfully, length: %d", len(response))
 	
 	// Kirim response sukses
 	resp := AIResponse{
@@ -149,6 +174,11 @@ func handleAIRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+// [Fungsi-fungsi lainnya tetap sama seperti sebelumnya]
+// prepareMessages, sendErrorResponse, callDeepSeek, callLlama4, callHuggingFaceAPI,
+// callGroqLlama, callMoonAI, callGroqAPI, callQwenCoder, callSonomaAI, callOpenRouterAPI
+// ... (salin semua fungsi yang ada sebelumnya dari sini sampai akhir)
 
 func sendErrorResponse(w http.ResponseWriter, message string, err error) {
 	resp := AIResponse{
@@ -433,3 +463,4 @@ func callOpenRouterAPI(payload map[string]interface{}) (string, error) {
 	
 	return message["content"].(string), nil
 }
+
