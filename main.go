@@ -48,26 +48,38 @@ func main() {
 	http.HandleFunc("/health", handleHealthCheck)
 	http.HandleFunc("/", handleRoot)
 	
+	// Gunakan PORT environment variable, default ke 10000 untuk Render
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "10000"
 	}
 	
-	// Binding ke 0.0.0.0 agar bisa diakses dari luar
+	// Binding ke 0.0.0.0 (wajib untuk Render)
 	addr := "0.0.0.0:" + port
 	
-	log.Printf("Server starting on %s", addr)
-	log.Printf("Available models: deepseek, llama4, groq-llama, moon-ai, qwen-coder, sonoma-ai")
+	log.Printf("🚀 Server starting on %s", addr)
+	log.Printf("📋 Available models: deepseek, llama4, groq-llama, moon-ai, qwen-coder, sonoma-ai")
 	
-	// Test koneksi database atau dependencies lain di sini jika ada
+	// Test koneksi
+	log.Printf("🔧 Testing environment variables...")
+	for _, envVar := range requiredEnvVars {
+		if value := os.Getenv(envVar); value != "" {
+			log.Printf("✅ %s: Set", envVar)
+		} else {
+			log.Printf("❌ %s: Not set", envVar)
+		}
+	}
 	
+	log.Printf("🌐 Server listening on http://%s", addr)
+	
+	// Start server - Render akan mendeteksi port yang terbuka
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		log.Fatalf("❌ Server failed to start: %v", err)
 	}
 }
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
-	log.Printf("GET / from %s", r.RemoteAddr)
+	log.Printf("📥 GET / from %s", r.RemoteAddr)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":    "online",
@@ -75,21 +87,24 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 		"version":   "1.0.0",
 		"endpoint":  "POST /api/ai",
 		"models":    "deepseek, llama4, groq-llama, moon-ai, qwen-coder, sonoma-ai",
+		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }
 
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
-	log.Printf("GET /health from %s", r.RemoteAddr)
+	log.Printf("📊 GET /health from %s", r.RemoteAddr)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-		"service": "jinxie-ai-aggregator",
-		"time":    time.Now().Format(time.RFC3339),
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":    "ok",
+		"service":   "jinxie-ai-aggregator",
+		"time":      time.Now().Format(time.RFC3339),
+		"port":      os.Getenv("PORT"),
 	})
 }
 
 func handleAIRequest(w http.ResponseWriter, r *http.Request) {
-	log.Printf("POST /api/ai from %s", r.RemoteAddr)
+	start := time.Now()
+	log.Printf("🤖 POST /api/ai from %s", r.RemoteAddr)
 	
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -163,7 +178,7 @@ func handleAIRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	log.Printf("Response generated successfully, length: %d", len(response))
+	log.Printf("Response generated successfully in %v, length: %d", time.Since(start), len(response))
 	
 	// Kirim response sukses
 	resp := AIResponse{
@@ -174,11 +189,6 @@ func handleAIRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
-
-// [Fungsi-fungsi lainnya tetap sama seperti sebelumnya]
-// prepareMessages, sendErrorResponse, callDeepSeek, callLlama4, callHuggingFaceAPI,
-// callGroqLlama, callMoonAI, callGroqAPI, callQwenCoder, callSonomaAI, callOpenRouterAPI
-// ... (salin semua fungsi yang ada sebelumnya dari sini sampai akhir)
 
 func sendErrorResponse(w http.ResponseWriter, message string, err error) {
 	resp := AIResponse{
@@ -463,4 +473,3 @@ func callOpenRouterAPI(payload map[string]interface{}) (string, error) {
 	
 	return message["content"].(string), nil
 }
-
